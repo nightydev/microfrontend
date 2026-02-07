@@ -1,16 +1,18 @@
 # 🏗️ Arquitectura de Microfrontends con Styled Components
 
-Proyecto de demostración de **aislamiento de estilos** en una arquitectura de microfrontends usando **Styled Components** y **Module Federation**.
+Proyecto de demostración de **aislamiento de estilos** en una arquitectura de microfrontends usando **Styled Components** y **Module Federation**, con un sistema de carrito de compras integrado.
 
 ## 📁 Estructura del Proyecto
 
 ```
-micro/
+microfrontend/
 ├── app1/                    # Microfrontend de Productos
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── CardProducto.tsx    # Componente estilizado de tarjeta
 │   │   │   └── BotonComprar.tsx    # Botón estilizado de compra
+│   │   ├── utils/
+│   │   │   └── cartEvents.ts       # Sistema de eventos para el carrito
 │   │   └── App.tsx          # Aplicación principal
 │   └── module-federation.config.ts
 │
@@ -22,15 +24,24 @@ micro/
 │   │   └── App.tsx          # Aplicación principal
 │   └── module-federation.config.ts
 │
+├── shopcart/                # Microfrontend del Carrito de Compras
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── ShoppingCart.tsx    # Componente del carrito
+│   │   ├── types.ts         # Tipos compartidos
+│   │   └── App.tsx          # Aplicación principal
+│   └── module-federation.config.ts
+│
 └── shell/                   # Aplicación Contenedora
     ├── src/
-    │   └── App.tsx          # Shell que integra ambos microfrontends
+    │   └── App.tsx          # Shell que integra todos los microfrontends
     └── module-federation.config.ts
 ```
 
 ## 🚀 Instalación y Ejecución
 
 ### Prerrequisitos
+
 - Node.js (v18 o superior)
 - npm o yarn
 
@@ -39,11 +50,14 @@ micro/
 Cada aplicación ya tiene instaladas sus dependencias, pero si necesitas reinstalar:
 
 ```powershell
-# En cada carpeta (app1, app2, shell):
+# En cada carpeta (app1, app2, shopcart, shell):
 cd app1
 npm install
 
 cd ..\app2
+npm install
+
+cd ..\shopcart
 npm install
 
 cd ..\shell
@@ -52,27 +66,42 @@ npm install
 
 ### 2. Iniciar las aplicaciones
 
-Necesitas **3 terminales** para ejecutar los microfrontends y el shell:
+Necesitas **4 terminales** para ejecutar los microfrontends y el shell:
 
 #### Terminal 1 - Microfrontend Productos (app1):
+
 ```powershell
 cd app1
 npm start
 ```
+
 Se ejecutará en: http://localhost:8081
 
 #### Terminal 2 - Microfrontend Usuarios (app2):
+
 ```powershell
 cd app2
 npm start
 ```
+
 Se ejecutará en: http://localhost:8082
 
-#### Terminal 3 - Shell (Aplicación Contenedora):
+#### Terminal 3 - Microfrontend Carrito (shopcart):
+
+```powershell
+cd shopcart
+npm start
+```
+
+Se ejecutará en: http://localhost:8083
+
+#### Terminal 4 - Shell (Aplicación Contenedora):
+
 ```powershell
 cd shell
 npm start
 ```
+
 Se ejecutará en: http://localhost:8080
 
 ### 3. Acceder a la aplicación
@@ -82,24 +111,82 @@ Abre tu navegador en: **http://localhost:8080**
 ## 🎯 Características
 
 ### Microfrontend de Productos (app1)
+
 - **Puerto**: 8081
 - **Componentes**:
   - `CardProducto`: Tarjeta de producto con gradiente morado/azul
   - `BotonComprar`: Botón azul con efectos hover
 - **Estilos**: Paleta morada (#667eea, #764ba2)
+- **Funcionalidad**: Emisión de eventos para agregar productos al carrito
 
 ### Microfrontend de Usuarios (app2)
+
 - **Puerto**: 8082
 - **Componentes**:
   - `PerfilUsuario`: Tarjeta de perfil con gradiente rosa/rojo
   - `BotonEditar`: Botón verde con efectos hover
 - **Estilos**: Paleta rosa/roja (#f093fb, #f5576c)
 
+### Microfrontend de Carrito (shopcart)
+
+- **Puerto**: 8083
+- **Componentes**:
+  - `ShoppingCart`: Componente completo de carrito de compras
+- **Funcionalidades**:
+  - Recepción de productos mediante eventos personalizados
+  - Gestión de cantidad de productos (aumentar/disminuir)
+  - Eliminación de productos del carrito
+  - Cálculo automático del total
+  - Proceso de checkout
+  - Estado local del carrito
+- **Comunicación**: Escucha eventos `addToCart` desde otros microfrontends
+
 ### Shell (Aplicación Contenedora)
+
 - **Puerto**: 8080
-- **Función**: Integra dinámicamente app1 y app2
-- **Navegación**: Botones para alternar entre vistas
+- **Función**: Integra dinámicamente app1, app2 y shopcart
+- **Navegación**: Botones para alternar entre vistas (Home, Productos, Usuarios, Carrito)
 - **Module Federation**: Carga remota de microfrontends
+
+## 🛒 Sistema de Carrito de Compras
+
+### Comunicación entre Microfrontends
+
+El proyecto implementa un sistema de comunicación basado en eventos personalizados:
+
+1. **app1 (Productos)** emite eventos cuando se agrega un producto:
+
+```typescript
+// app1/src/utils/cartEvents.ts
+export const addToCart = (product: Product) => {
+  const event = new CustomEvent("addToCart", { detail: product });
+  window.dispatchEvent(event);
+};
+```
+
+2. **shopcart** escucha estos eventos y actualiza el carrito:
+
+```typescript
+// shopcart/src/components/ShoppingCart.tsx
+useEffect(() => {
+  const handleAddToCart = (event: CustomEvent) => {
+    const product = event.detail;
+    setCart((prevCart) => {
+      // Lógica para agregar o actualizar producto
+    });
+  };
+  window.addEventListener("addToCart", handleAddToCart);
+}, []);
+```
+
+### Flujo de Funcionamiento
+
+1. El usuario navega a "Productos" en el shell
+2. Hace clic en "Agregar al Carrito" en un producto
+3. app1 emite un evento con los datos del producto
+4. Navega a "Carrito"
+5. shopcart muestra los productos agregados
+6. El usuario puede modificar cantidades o proceder al pago
 
 ## 🔧 Tecnologías Utilizadas
 
@@ -112,15 +199,21 @@ Abre tu navegador en: **http://localhost:8080**
 ## 🎨 Demostración de Aislamiento de Estilos
 
 ### Sin Styled Components (Problema):
+
 ```css
 /* app1/styles.css */
-.button { background: blue; }
+.button {
+  background: blue;
+}
 
 /* app2/styles.css */
-.button { background: green; } /* ❌ Sobrescribe app1 */
+.button {
+  background: green;
+} /* ❌ Sobrescribe app1 */
 ```
 
 ### Con Styled Components (Solución):
+
 ```jsx
 // app1
 const BotonComprar = styled.button`
@@ -149,9 +242,11 @@ const BotonEditar = styled.button`
 ## 📚 Preguntas de Análisis
 
 Las respuestas detalladas a las preguntas de la actividad están en:
+
 - **[ANALISIS_RESPUESTAS.md](./ANALISIS_RESPUESTAS.md)**
 
 Temas cubiertos:
+
 1. ¿Qué problema resuelve Styled Components en microfrontends?
 2. ¿Qué pasaría si se usara CSS global?
 3. ¿Cómo ayuda el hash de clases generado automáticamente?
@@ -181,6 +276,7 @@ npm install
 ## 📦 Module Federation Config
 
 ### app1 (expone su aplicación):
+
 ```typescript
 {
   name: "app1",
@@ -192,6 +288,7 @@ npm install
 ```
 
 ### app2 (expone su aplicación):
+
 ```typescript
 {
   name: "app2",
@@ -203,6 +300,7 @@ npm install
 ```
 
 ### shell (consume remotos):
+
 ```typescript
 {
   name: "shell",
@@ -225,15 +323,18 @@ npm install
 ## 🐛 Solución de Problemas
 
 ### Error: "Cannot find module 'app1/App'"
+
 - Verifica que app1 esté corriendo en el puerto 8081
 - Revisa que `module-federation.config.ts` tenga la configuración correcta
 
 ### Los estilos no se ven
+
 - Limpia el cache del navegador (Ctrl + Shift + R)
 - Verifica que styled-components esté instalado en cada proyecto
 - Revisa la consola del navegador para errores
 
 ### Puerto en uso
+
 ```powershell
 # En Windows, liberar puerto 8080:
 netstat -ano | findstr :8080

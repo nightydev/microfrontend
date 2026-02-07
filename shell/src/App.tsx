@@ -7,6 +7,7 @@ import "./index.css";
 // Lazy load de los microfrontends
 const App1 = lazy(() => import("app1/App"));
 const App2 = lazy(() => import("app2/App"));
+const MiniCart = lazy(() => import("shopcart/MiniCart"));
 
 const Container = styled.div`
   min-height: 100vh;
@@ -38,7 +39,7 @@ const Title = styled.h1`
   margin-right: auto;
 `;
 
-const NavButton = styled.button<{ active: boolean }>`
+const NavButton = styled.button<{ $active: boolean }>`
   padding: 10px 24px;
   border: none;
   border-radius: 6px;
@@ -46,8 +47,8 @@ const NavButton = styled.button<{ active: boolean }>`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  background-color: ${props => props.active ? '#667eea' : '#e0e0e0'};
-  color: ${props => props.active ? 'white' : '#333'};
+  background-color: ${props => props.$active ? '#667eea' : '#e0e0e0'};
+  color: ${props => props.$active ? 'white' : '#333'};
 
   &:hover {
     transform: translateY(-2px);
@@ -78,15 +79,18 @@ const App = () => {
       <Header>
         <Nav>
           <Title>🏠 Shell - Arquitectura de Microfrontends</Title>
-          <NavButton active={activeView === "home"} onClick={() => setActiveView("home")}>
+          <NavButton $active={activeView === "home"} onClick={() => setActiveView("home")}>
             Home
           </NavButton>
-          <NavButton active={activeView === "productos"} onClick={() => setActiveView("productos")}>
+          <NavButton $active={activeView === "productos"} onClick={() => setActiveView("productos")}>
             Productos
           </NavButton>
-          <NavButton active={activeView === "usuarios"} onClick={() => setActiveView("usuarios")}>
+          <NavButton $active={activeView === "usuarios"} onClick={() => setActiveView("usuarios")}>
             Usuarios
           </NavButton>
+          <Suspense fallback={<div style={{ padding: '10px 16px' }}>🛒</div>}>
+            <MiniCart />
+          </Suspense>
         </Nav>
       </Header>
 
@@ -101,8 +105,10 @@ const App = () => {
             <ul style={{ fontSize: "16px", lineHeight: "1.8", color: "#666" }}>
               <li><strong>Microfrontend Productos:</strong> Módulo independiente con componentes estilizados (CardProducto, BotonComprar)</li>
               <li><strong>Microfrontend Usuarios:</strong> Módulo independiente con componentes estilizados (PerfilUsuario, BotonEditar)</li>
+              <li><strong>Microfrontend Carrito:</strong> Carrito de compras integrado que recibe productos desde otros microfrontends</li>
               <li><strong>Estilos Encapsulados:</strong> Cada microfrontend tiene sus propios estilos sin conflictos</li>
               <li><strong>Module Federation:</strong> Integración dinámica de microfrontends</li>
+              <li><strong>Comunicación entre MF:</strong> Sistema de eventos para comunicación entre microfrontends independientes</li>
             </ul>
             <h3>🔑 Beneficios de Styled Components:</h3>
             <ul style={{ fontSize: "16px", lineHeight: "1.8", color: "#666" }}>
